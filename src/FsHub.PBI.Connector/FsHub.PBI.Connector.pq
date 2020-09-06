@@ -69,8 +69,7 @@ FsHub = [
     Label = "FsHub"
 ];
 
-
-FsHubImpl = (f as text, optional cursor) as table =>
+GetPage = (f as text, optional cursor) as table =>
     let
         token = Extension.CurrentCredential()[Key],
         headers = [
@@ -82,13 +81,41 @@ FsHubImpl = (f as text, optional cursor) as table =>
         url = Uri.Combine(BaseUrl, (f & "?limit=" & Text.From(PageSize) & "&cursor=" & Text.From(count))),
         response = Web.Contents(url, [ Headers = headers, ManualCredentials = true ]),
         json = Json.Document(response),
-        result = Record.ToTable(json)
+        result = Record.ToTable(json),
+        NextCursor = json[meta][cursor][next]
     in
-        result;
+        result meta [cursor = NextCursor];
+
+GetAllPagesByNextLink = (f as text) as table =>
+    Table.GenerateByPage((previous) => 
+        let
+            nextLink = if (previous = null) then 1 else Value.Metadata(previous)[NextLink]?,
+            page = if (nextLink <> null) then GetPage(f, nextLink) else null
+        in
+            page
+    );
+
+Table.GenerateByPage = (getNextPage as function) as table =>
+    let        
+        listOfPages = List.Generate(
+            () => getNextPage(null),
+            (lastPage) => lastPage <> null,
+            (lastPage) => getNextPage(lastPage)
+        ),
+        tableOfPages = Table.FromList(listOfPages, Splitter.SplitByNothing(), {"Column1"}),
+        firstRow = tableOfPages{0}?
+    in
+        if (firstRow = null) then
+            Table.FromRows({})
+        else        
+            Value.ReplaceType(
+                Table.ExpandTableColumn(tableOfPages, "Column1", Table.ColumnNames(firstRow[Column1])),
+                Value.Type(firstRow[Column1])
+            );
 
 GetAirlinesTable = () as table =>
     let
-        source = FsHubImpl("airline"),
+        source = GetAllPagesByNextLink("airline"),
         value = source{0}[Value],
         #"Converted to Table" = Table.FromList(value, Splitter.SplitByNothing(), null, null, ExtraValues.Error),
         #"Expanded Column1" = Table.ExpandRecordColumn(#"Converted to Table", "Column1", {"id", "name", "abbr", "owner", "handles", "links"}, {"id", "Name", "Abbr", "owner", "handles", "links"}),
@@ -100,7 +127,7 @@ GetAirlinesTable = () as table =>
 
 GetAirportsTable = () as table =>
     let
-        source = FsHubImpl("airport/EGSS"),
+        source = GetAllPagesByNextLink("airport/EGSS"),
         value = source[Value],
         airport = Table.FromList(value, Splitter.SplitByNothing(), null, null, ExtraValues.Error),
         #"Expanded Column1" = Table.ExpandRecordColumn(airport, "Column1", {"icao", "iata", "name", "locale", "geo", "alt", "mag_var", "frequencies", "runways", "links"}, {"icao", "iata", "Name", "locale", "geo", "Alt", "mag_var", "Frequencies", "Runways", "Links"}),
@@ -113,13 +140,13 @@ GetAirportsTable = () as table =>
 
 GetFlightsTable = () as table =>
     let
-        source = FsHubImpl("flight")
+        source = GetAllPagesByNextLink("flight")
     in
         source;
 
 GetPilotsTable = () as table =>
     let
-        source = FsHubImpl("pilot/2"),
+        source = GetAllPagesByNextLink("pilot/2"),
         value = source[Value],
         pilot = Table.FromList(value, Splitter.SplitByNothing(), null, null, ExtraValues.Error),
         #"Expanded Column1" = Table.ExpandRecordColumn(pilot, "Column1", {"id", "name", "bio", "handles", "base", "locale", "gps", "timezone", "country", "online_at", "created_at", "links"}, {"id", "Name", "Bio", "handles", "Base", "Locale", "gps", "Timezone", "Country", "online_at", "created_at", "links"}),
