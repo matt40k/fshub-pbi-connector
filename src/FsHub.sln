@@ -3,7 +3,19 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.30413.136
 MinimumVisualStudioVersion = 10.0.40219.1
+Project("{4DF76451-A46A-4C0B-BE03-459FAAFA07E6}") = "FsHub.PBI.Connector", "FsHub.PBI.Connector\FsHub.PBI.Connector.mproj", "{72737566-16BE-4560-A3B0-9B3CF549AD55}"
+EndProject
 Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x86 = Debug|x86
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{72737566-16BE-4560-A3B0-9B3CF549AD55}.Debug|x86.ActiveCfg = Debug|x86
+		{72737566-16BE-4560-A3B0-9B3CF549AD55}.Debug|x86.Build.0 = Debug|x86
+		{72737566-16BE-4560-A3B0-9B3CF549AD55}.Release|x86.ActiveCfg = Release|x86
+		{72737566-16BE-4560-A3B0-9B3CF549AD55}.Release|x86.Build.0 = Release|x86
+	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
